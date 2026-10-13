@@ -26,10 +26,10 @@ export class Game {
   private turnQueue: string[] = []; // players who still have to draw this round
   private usedWords: Set<string> = new Set();
   private timer: NodeJS.Timeout | null = null;
-  private currentStroke: Stroke | null = null; // the line being drawn right now
+  private currentStroke: Stroke | null = null; 
   private nextStrokeId: number = 1;
-  private pointsThisTurn: Map<string, number> = new Map(); // for the "+250" list at round end
-  private revealed: Set<number> = new Set(); // positions of letters shown as hints
+  private pointsThisTurn: Map<string, number> = new Map();
+  private revealed: Set<number> = new Set(); 
   private hintTimers: NodeJS.Timeout[] = [];
 
   constructor(room: Room) {
