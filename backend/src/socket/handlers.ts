@@ -140,6 +140,10 @@ export function registerSocketHandlers(io: Server, roomManager: RoomManager): vo
     socket.on("draw_end", () => getMyRoom()?.game?.drawEnd(socket.id));
     socket.on("draw_undo", () => getMyRoom()?.game?.undo(socket.id));
     socket.on("canvas_clear", () => getMyRoom()?.game?.clearCanvas(socket.id));
+    socket.on("get_canvas", (ack: unknown) => {
+      if (typeof ack !== "function") return;
+      ack({ strokes: getMyRoom()?.game?.strokes ?? [] });
+    });
 
     
 

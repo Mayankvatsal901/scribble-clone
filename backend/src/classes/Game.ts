@@ -110,6 +110,7 @@ export class Game {
         wordOptions: id === nextId ? this.wordOptions : [],
       });
     }
+    this.room.broadcastState()
     this.room.broadcastGameState();
 
     // If the drawer doesn't choose in time, pick a random word for them
@@ -202,6 +203,7 @@ export class Game {
 
     const leaderboard = this.getLeaderboard();
     this.room.broadcast("game_over", { winner: leaderboard[0] ?? null, leaderboard });
+    this.room.broadcastState();
     if (leaderboard[0]) this.room.systemMessage(`${leaderboard[0].name} won the game!`);
     this.room.broadcastGameState();
 
