@@ -12,18 +12,26 @@ export function registerSocketHandlers(io: Server, roomManager: RoomManager): vo
   io.on("connection", (socket: Socket) => {
     console.log("Player connected:", socket.id);
 
+
+    
+    const getMyRoom = (): Room | undefined => {
+      const roomId: string | undefined = socket.data.roomId;
+      return roomId ? roomManager.getRoom(roomId) : undefined;
+    };
+
+    // Tell only this player that something went wrong
+    const sendError = (message: string): void => {
+      socket.emit("error_message", { message });
+    };
+
     // Remove this socket from the room it is currently in (if any)
     const leaveCurrentRoom = (): void => {
-      const roomId: string | undefined = socket.data.roomId;
-      if (!roomId) return;
-
-      socket.leave(roomId);
+      const room = getMyRoom();
+      if (socket.data.roomId) socket.leave(socket.data.roomId);
       socket.data.roomId = undefined;
-
-      const room = roomManager.getRoom(roomId);
       if (!room) return;
-      room.removePlayer(socket.id);
 
+      room.removePlayer(socket.id);
       if (room.isEmpty()) {
         roomManager.deleteRoom(room.id);
         console.log(`Room ${room.id} deleted (empty)`);
@@ -50,14 +58,14 @@ export function registerSocketHandlers(io: Server, roomManager: RoomManager): vo
       ack?.({ success: true, roomId: room.id });
     };
 
-    // Private room: creator becomes host, settings come from the client
+    // ---------- rooms ----------
+
     socket.on("create_room", (data: any, ack?: Ack) => {
       const room = roomManager.createRoom(false, validateSettings(data?.settings));
       console.log(`Private room ${room.id} created`);
       joinRoom(room, data?.hostName, ack);
     });
 
-    // Join by code or invite link
     socket.on("join_room", (data: any, ack?: Ack) => {
       const room = roomManager.getRoom(String(data?.roomId ?? ""));
       if (!room) {
@@ -67,7 +75,6 @@ export function registerSocketHandlers(io: Server, roomManager: RoomManager): vo
       joinRoom(room, data?.playerName, ack);
     });
 
-    // Public: join any open public room, or create a new one (no host)
     socket.on("quick_play", (data: any, ack?: Ack) => {
       let room = roomManager.findPublicRoom();
       if (!room) {
@@ -78,6 +85,68 @@ export function registerSocketHandlers(io: Server, roomManager: RoomManager): vo
     });
 
     socket.on("leave_room", () => leaveCurrentRoom());
+
+    // ---------- lobby ----------
+
+    socket.on("set_ready", (data: any) => {
+      getMyRoom()?.setReady(socket.id, Boolean(data?.ready));
+    });
+
+    socket.on("update_settings", (data: any) => {
+      const room = getMyRoom();
+      if (!room) return;
+      const error = room.updateSettings(socket.id, data?.settings);
+      if (error) sendError(error);
+    });
+
+    socket.on("kick_player", (data: any) => {
+      const room = getMyRoom();
+      if (!room) return;
+      const targetId = String(data?.playerId ?? "");
+
+      const error = room.kickPlayer(socket.id, targetId);
+      if (error) {
+        sendError(error);
+        return;
+      }
+
+
+      const target = io.sockets.sockets.get(targetId);
+      if (target) {
+        target.emit("kicked", { reason: "You were kicked by the host" });
+        target.leave(room.id);
+        target.data.roomId = undefined;
+      }
+    });
+
+    socket.on("start_game", () => {
+      const room = getMyRoom();
+      if (!room) return;
+      const error = room.startGame(socket.id);
+      if (error) sendError(error);
+    });
+
+    socket.on("word_chosen", (data: any) => {
+      const game = getMyRoom()?.game;
+      if (!game) return;
+      const error = game.chooseWord(socket.id, String(data?.word ?? ""));
+      if (error) sendError(error);
+    });
+        // ---------- drawing ----------
+    // No error messages here: these events arrive many times per second
+
+    socket.on("draw_start", (data: any) => getMyRoom()?.game?.drawStart(socket.id, data));
+    socket.on("draw_move", (data: any) => getMyRoom()?.game?.drawMove(socket.id, data));
+    socket.on("draw_end", () => getMyRoom()?.game?.drawEnd(socket.id));
+    socket.on("draw_undo", () => getMyRoom()?.game?.undo(socket.id));
+    socket.on("canvas_clear", () => getMyRoom()?.game?.clearCanvas(socket.id));
+
+    
+
+      
+    const onMessage = (data: any) => getMyRoom()?.sendChat(socket.id, String(data?.text ?? ""));
+    socket.on("chat", onMessage);
+    socket.on("guess", onMessage);
 
     socket.on("disconnect", () => {
       console.log("Player disconnected:", socket.id);

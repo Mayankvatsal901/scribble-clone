@@ -5,6 +5,7 @@ export class Player {
   name: string;
   score: number = 0;
   isReady: boolean = false;
+  hasGuessed: boolean = false; // reset at the start of every turn
 
   constructor(id: string, name: string) {
     this.id = id;
@@ -18,6 +19,8 @@ export class Player {
       name: this.name,
       score: this.score,
       isReady: this.isReady,
+        hasGuessed: this.hasGuessed,
+      
       isHost: this.id === hostId,
     };
   }

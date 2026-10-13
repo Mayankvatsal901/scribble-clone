@@ -44,3 +44,15 @@ export function validateSettings(input: any): RoomSettings {
     wordMode: WORD_MODES.includes(s.wordMode) ? s.wordMode : DEFAULT_SETTINGS.wordMode,
   };
 }
+
+
+export function cleanColor(color: unknown): string {
+  return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#000000";
+}
+
+
+export function clampNumber(value: unknown, min: number, max: number): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}

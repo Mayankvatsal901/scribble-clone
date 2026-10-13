@@ -18,12 +18,13 @@ export interface PlayerInfo {
   score: number;
   isReady: boolean;
   isHost: boolean;
+  hasGuessed: boolean; // guessed the word this turn (shown green in the player list)
 }
-
 // Snapshot of a room, sent to every player when something changes
 export interface RoomState {
   roomId: string;
   isPublic: boolean;
+  phase: GamePhase;
   hostId: string | null;
   settings: RoomSettings;
   players: PlayerInfo[];
@@ -33,3 +34,39 @@ export interface RoomState {
 export type AckResponse =
   | { success: true; roomId: string }
   | { success: false; error: string };
+
+export interface ChatMessage {
+  type: "chat" | "system" | "correct" | "notice";
+  playerId: string | null;
+  playerName: string;
+  text: string;
+}
+
+  // lobby → choosing (drawer picks a word) → drawing → round_end → ... → game_over
+export type GamePhase = "lobby" | "choosing" | "drawing" | "round_end" | "game_over";
+
+
+export interface GameState {
+  phase: GamePhase;
+  round: number;
+  totalRounds: number;
+  drawerId: string | null;
+  word: string | null; 
+  hint: string | null; 
+  endsAt: number; 
+}
+
+export interface LeaderboardEntry {
+  playerId: string;
+  name: string;
+  score: number;
+}
+
+export interface Stroke {
+  id: number;
+  color: string; // "#rrggbb" (the eraser is just white)
+  size: number; // brush thickness in pixels
+  points: number[];
+}
+
+

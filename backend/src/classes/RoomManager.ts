@@ -34,7 +34,8 @@ export class RoomManager {
     return undefined;
   }
 
-  deleteRoom(roomId: string): void {
+   deleteRoom(roomId: string): void {
+    this.rooms.get(roomId)?.destroy(); // stop any timers still running in that room
     this.rooms.delete(roomId);
   }
 
